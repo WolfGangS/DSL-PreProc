@@ -172,17 +172,10 @@ export default class PreProc {
       case "define": {
         let sp = arg.indexOf(" ");
         if (sp < 0) sp = arg.length;
-        const def = arg.substring(0, sp).trim();
-        if (!def.match(/^[0-9A-z]+$/)) {
-          if (!this.defFunction(def, arg.substring(sp).trim())) {
-            this.error(`Define with non alpha numberic value: ${def}`);
-          }
-        } else {
-          this.state.store(
-            def,
-            arg.substring(sp).trim(),
-          );
-        }
+        this.state.store(
+          arg.substring(0, sp).trim(),
+          arg.substring(sp).trim(),
+        );
         break;
       }
       case "ifdef": {
@@ -199,7 +192,14 @@ export default class PreProc {
       }
       case "includeonce":
       case "include": {
-        const file = dirname(this.file) + "/" + this.cleanIncludeArd(arg);
+        const fileArg = this.cleanIncludeArg(arg);
+        let file = dirname(this.file) + "/" + this.cleanIncludeArg(arg);
+        if (!(await exists(file))) {
+          file += "." + this.file.split(".").pop();
+          if (!(await exists(file))) {
+            this.error(`Cannot find file ${fileArg}\nTried: ${file}`);
+          }
+        }
         if (cmd == "includeonce") {
           if (this.state.files.includes(file)) {
             return this.verbose
@@ -245,7 +245,7 @@ export default class PreProc {
     return false;
   }
 
-  private cleanIncludeArd(inc: string): string {
+  private cleanIncludeArg(inc: string): string {
     const frst = inc.charAt(0);
     const str = this.config.string.find((lang) => lang.char == frst);
     if (str) {
@@ -271,35 +271,6 @@ export default class PreProc {
       default:
         return this.state.read(va);
     }
-  }
-
-  private defFunction(func: string, body: string): boolean {
-    if (!func.match(/^([A-z0-9_]+\([A-z, ]*\))$/)) return false;
-    const parts = func.substring(0, func.length - 1).split("(");
-    const argstr = parts[1];
-    const args = argstr == "" ? [] : argstr.split(",").map((arg) => arg.trim());
-    const name = parts[0];
-
-    const tokes: string[] = [];
-    const stream = new Tokenstream(body, this.config);
-    let toke = stream.next();
-    while (toke) {
-      tokes.push(toke);
-      toke = stream.next();
-    }
-
-    this.state.store(name, (vals: string[]) => {
-      if (vals.length != args.length) {
-        throw `Invalid arg count for define func '${name}' expected ${args.length} got ${vals.length}`;
-      }
-      const pairs: { [k: string]: string } = {};
-      for (const index in args) {
-        pairs[args[index]] = vals[index];
-      }
-      return tokes.map((toke) => pairs[toke] ?? toke).join("");
-    });
-
-    return true;
   }
 
   private error(err: string) {
@@ -373,7 +344,7 @@ export default class PreProc {
 type IfStack = [boolean, number];
 
 export interface PreProcStateInterface {
-  store: (name: string, value: string | DefFunc) => void;
+  store: (name: string, value: string) => void;
   read: (name: string) => string | DefFunc | null;
   defines: string[];
   addFile: (path: string) => void;
@@ -406,4 +377,5 @@ export type PreProcConfig = {
   leadCharCommented: boolean;
   validSymbol: RegExp;
   options: { [k: string]: string | boolean };
+  predefined?: { [k: string]: string };
 };

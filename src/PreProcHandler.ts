@@ -3,6 +3,7 @@ import PreProc, {
   PreProcConfig,
   PreProcStateInterface,
 } from "./PreProc/PreProc.ts";
+import { Tokenstream } from "./PreProc/Streams.ts";
 
 export default class PreProcHandler {
   private files: string[];
@@ -56,6 +57,7 @@ export default class PreProcHandler {
       this.root_file,
       new ProcState(
         this.cleanState(),
+        this.preProcConfig,
       ),
       this.preProcConfig,
       1,
@@ -89,15 +91,51 @@ type PreProcStateStore = { [k: string]: string | DefFunc };
 class ProcState implements PreProcStateInterface {
   private state: PreProcStateStore;
   private _files: string[] = [];
-  constructor(state: PreProcStateStore = {}) {
+  private config: PreProcConfig;
+  constructor(state: PreProcStateStore, config: PreProcConfig) {
     this.state = state;
+    this.config = config;
+    const pre = config.predefined ?? {};
+    for (const name in pre) {
+      this.store(name, pre[name]);
+    }
   }
   addFile(path: string): void {
     if (this._files.includes(path)) return;
     this._files.push(path);
   }
-  store(name: string, value: string | DefFunc): void {
-    this.state[name] = value;
+  store(name: string, value: string): void {
+    if (!this.defFunction(name, value)) {
+      this.state[name] = value;
+    }
+  }
+  defFunction(func: string, body: string): boolean {
+    if (!func.match(/^([A-z0-9_]+\([A-z, ]*\))$/)) return false;
+    const parts = func.substring(0, func.length - 1).split("(");
+    const argstr = parts[1];
+    const args = argstr == "" ? [] : argstr.split(",").map((arg) => arg.trim());
+    const name = parts[0];
+
+    const tokes: string[] = [];
+    const stream = new Tokenstream(body, this.config);
+    let toke = stream.next();
+    while (toke) {
+      tokes.push(toke);
+      toke = stream.next();
+    }
+
+    this.state[name] = (vals: string[]) => {
+      if (vals.length != args.length) {
+        throw `Invalid arg count for define func '${name}' expected ${args.length} got ${vals.length}`;
+      }
+      const pairs: { [k: string]: string } = {};
+      for (const index in args) {
+        pairs[args[index]] = vals[index];
+      }
+      return tokes.map((toke) => pairs[toke] ?? toke).join("");
+    };
+
+    return true;
   }
   read(name: string): string | DefFunc | null {
     return this.state[name] ?? null;
