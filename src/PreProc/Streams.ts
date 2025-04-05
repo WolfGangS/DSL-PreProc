@@ -1,4 +1,5 @@
-import { LangStringDef, PreProcConfig } from "./PreProc.ts";
+import { FileReader } from "./FileReader.ts";
+import { LangStringDef, LanguageConfig } from "./PreProc.ts";
 
 export class FileLineStream {
   private loaded: boolean = false;
@@ -14,7 +15,7 @@ export class FileLineStream {
   }
 
   static async createFromFile(file: string): Promise<FileLineStream> {
-    return FileLineStream.createFromString(await Deno.readTextFile(file));
+    return FileLineStream.createFromString(await FileReader.read(file));
   }
 
   peekValid(n: number = 1): boolean {
@@ -55,11 +56,11 @@ export class FileLineStream {
 export class Tokenstream {
   private stream: CharStream;
   private marked: number = 0;
-  private config: PreProcConfig;
+  private config: LanguageConfig;
 
   private cache: string[] = [];
 
-  constructor(text: string, config: PreProcConfig) {
+  constructor(text: string, config: LanguageConfig) {
     this.stream = new CharStream(text);
     this.config = config;
   }

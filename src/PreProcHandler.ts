@@ -4,24 +4,25 @@ import PreProc, {
   PreProcStateInterface,
 } from "./PreProc/PreProc.ts";
 import { Tokenstream } from "./PreProc/Streams.ts";
+import { encodeHex } from "jsr:@std/encoding/hex";
 
 export default class PreProcHandler {
   private files: string[];
   private root_file: string;
   private watcher: Deno.FsWatcher | null = null;
-  private output: (content: string) => Promise<void>;
+  private output: (content: PreProcResult) => Promise<void>;
   private preProcConfig: PreProcConfig;
   private closed = false;
 
   constructor(
     root_file: string,
-    output: (content: string) => Promise<void>,
-    preProcCpnfig: PreProcConfig,
+    output: (content: PreProcResult) => Promise<void>,
+    preProcConfig: PreProcConfig,
   ) {
     this.root_file = root_file;
     this.files = [root_file];
     this.output = output;
-    this.preProcConfig = preProcCpnfig;
+    this.preProcConfig = preProcConfig;
   }
 
   async run() {
@@ -51,8 +52,8 @@ export default class PreProcHandler {
     this.closed = true;
   }
 
-  private async runPreProc(dry: boolean = false) {
-    console.log("PreProc Run");
+  async runPreProc(dry: boolean = false) {
+    // console.log("PreProc Run");
     const preProc = await PreProc.createFromFile(
       this.root_file,
       new ProcState(
@@ -65,7 +66,14 @@ export default class PreProcHandler {
     try {
       const output = await preProc.run();
       if (!dry) {
-        await this.output(output);
+        const buff = new TextEncoder().encode(output);
+        const hashBuff = await crypto.subtle.digest("SHA-256", buff);
+        const hash = encodeHex(hashBuff);
+        await this.output({
+          text: output,
+          files: preProc.state.files,
+          hash,
+        });
       }
     } catch (e: unknown) {
       console.error(e);
@@ -95,7 +103,7 @@ class ProcState implements PreProcStateInterface {
   constructor(state: PreProcStateStore, config: PreProcConfig) {
     this.state = state;
     this.config = config;
-    const pre = config.predefined ?? {};
+    const pre = config.language.predefined ?? {};
     for (const name in pre) {
       this.store(name, pre[name]);
     }
@@ -117,7 +125,7 @@ class ProcState implements PreProcStateInterface {
     const name = parts[0];
 
     const tokes: string[] = [];
-    const stream = new Tokenstream(body, this.config);
+    const stream = new Tokenstream(body, this.config.language);
     let toke = stream.next();
     while (toke) {
       tokes.push(toke);
@@ -147,3 +155,9 @@ class ProcState implements PreProcStateInterface {
     return Object.keys(this.state);
   }
 }
+
+export type PreProcResult = {
+  text: string;
+  files: string[];
+  hash: string;
+};

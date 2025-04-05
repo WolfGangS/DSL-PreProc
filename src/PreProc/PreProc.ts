@@ -78,7 +78,7 @@ export default class PreProc {
   }
 
   private replaceDefines(line: string): string {
-    const stream = new Tokenstream(line, this.config);
+    const stream = new Tokenstream(line, this.config.language);
 
     const out: string[] = [];
 
@@ -121,13 +121,17 @@ export default class PreProc {
         }
       }
       if (next) {
-        if (next == this.config.comments.single) commented = true;
+        if (next == this.language.comments.single) commented = true;
         out.push(next);
       }
       next = stream.next();
     }
 
     return out.join("");
+  }
+
+  private get language(): LanguageConfig {
+    return this.config.language;
   }
 
   private get verbose(): boolean {
@@ -148,7 +152,7 @@ export default class PreProc {
       while (this.iter.peekValid()) {
         let nLine = this.iter.next() as string;
         line = line.substring(0, line.length - 1).trimEnd();
-        if (this.config.leadCharCommented) {
+        if (this.language.leadCharCommented) {
           nLine = nLine.trimStart();
           if (!nLine.startsWith(this.single)) {
             throw `Trying to read multiline def without preceeding '${this.single}'`;
@@ -247,7 +251,7 @@ export default class PreProc {
 
   private cleanIncludeArg(inc: string): string {
     const frst = inc.charAt(0);
-    const str = this.config.string.find((lang) => lang.char == frst);
+    const str = this.language.string.find((lang) => lang.char == frst);
     if (str) {
       let end = inc.length;
       if (inc.charAt(inc.length - 1) == str.char) {
@@ -290,10 +294,10 @@ export default class PreProc {
   }
 
   private get lead(): string {
-    if (this.config.leadCharCommented) {
-      return `${this.config.comments.single}${this.config.leadChar}`;
+    if (this.language.leadCharCommented) {
+      return `${this.language.comments.single}${this.language.leadChar}`;
     } else {
-      return this.config.leadChar;
+      return this.language.leadChar;
     }
   }
 
@@ -334,10 +338,10 @@ export default class PreProc {
   }
 
   private get single(): string {
-    return this.config.comments.single;
+    return this.language.comments.single;
   }
   private get char(): string {
-    return this.config.leadChar;
+    return this.language.leadChar;
   }
 }
 
@@ -365,6 +369,12 @@ export type LangStringDef = {
 export type LangStringDefs = LangStringDef[];
 
 export type PreProcConfig = {
+  root: string;
+  language: LanguageConfig;
+  options: { [k: string]: string | boolean };
+};
+
+export type LanguageConfig = {
   comments: {
     single: string;
     multi: {
@@ -376,6 +386,5 @@ export type PreProcConfig = {
   leadChar: string;
   leadCharCommented: boolean;
   validSymbol: RegExp;
-  options: { [k: string]: string | boolean };
   predefined?: { [k: string]: string };
 };
