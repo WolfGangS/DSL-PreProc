@@ -1,7 +1,5 @@
-import { Args, parseArgs } from "jsr:@std/cli/parse-args";
+import { parseArgs } from "jsr:@std/cli/parse-args";
 import PreProcHandler from "./PreProcHandler.ts";
-import { PreProcConfig } from "./PreProc/PreProc.ts";
-import Instance from "./Instance.ts";
 import { getLangParams } from "./PreProcConfigBuilder.ts";
 const args = parseArgs(
   Deno.args,

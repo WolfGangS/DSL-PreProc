@@ -20,7 +20,8 @@ export default class FileHandler {
     }
     try {
       watcher.close();
-    } catch (_e: any) {
+    } catch (_e: unknown) {
+      // Skip
     }
     if (this.handle) this.handle();
   }
