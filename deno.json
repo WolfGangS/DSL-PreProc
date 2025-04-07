@@ -1,0 +1,14 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-write --allow-run --allow-read --allow-net --allow-env=HOME,HOMEPATH --watch src/main.ts --server",
+    "run": "deno run --allow-write --allow-run --allow-read --allow-net --allow-env=HOME,HOMEPATH src/main.ts --server",
+    "build": "deno task build-win && deno task build-linux",
+    "build-win": "deno compile --target x86_64-pc-windows-msvc --allow-write --allow-run --allow-read --allow-net --allow-env=HOME,HOMEPATH --output bin/dlsl_preproc.exe src/main.ts",
+    "build-linux": "deno compile --target x86_64-unknown-linux-gnu --allow-write --allow-run --allow-read --allow-net --allow-env=HOME,HOMEPATH --output bin/dlsl_preproc src/main.ts",
+    "cache": "deno cache src/main.ts",
+    "install": "deno install src/main.ts"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1"
+  }
+}
