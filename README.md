@@ -7,9 +7,23 @@ A kinda crappy pre-processor aimed at Second Life scripting
 - LSL
 - SLua
   - Adds compile time require support
+  - `local lib = require("./other")` will look for `.luau` file endings
+    automatically if not specified.
+  - All preproc commands need to be prefixed with `--`
+    - e.g. `--#include ../defines.luau`
 - Output format for the
   [SL External Editor](https://marketplace.visualstudio.com/items?itemName=wlf-io.sl-external-editor)
   extension
+- Basic preproc commands
+  - `#include <file_name>` Include a file (Relative to current file only for
+    now, so `./../file.luau` or so)
+  - `#define NAME value` define a value
+  - `#ifdef NAME` check if `NAME` is defined and advance to `#else` or `#endif`
+    if it isn't
+  - `#ifndef NAME` check if `NAME` is not defined and advance to `#else` or
+    `#endif` if it is
+  - `#else` else for `ifdef` and `ifndef`
+  - `#endif` endif
 
 Recommended to be used with the above extension, in fact it will offer it as a
 default download at some point.
