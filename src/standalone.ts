@@ -5,6 +5,7 @@ const args = parseArgs(
   Deno.args,
   {
     string: ["file", "lang", "out", "root"],
+    boolean: ["raw"],
   },
 );
 
@@ -36,7 +37,11 @@ if (lang !== "lsl" && lang != "lua") {
 const handler = new PreProcHandler(
   file,
   (result) => {
-    console.log(JSON.stringify(result));
+    if (args.raw) {
+      console.log(result.text);
+    } else {
+      console.log(JSON.stringify(result));
+    }
     return Promise.resolve();
   },
   {

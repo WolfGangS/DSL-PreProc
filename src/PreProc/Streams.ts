@@ -27,7 +27,7 @@ export class FileLineStream {
   }
 
   next(): string | false {
-    this.line++;
+    this._line++;
     return this.lines[this.line] ?? false;
   }
 

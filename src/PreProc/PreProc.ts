@@ -1,6 +1,7 @@
 import { dirname } from "jsr:@std/path";
 import { exists } from "jsr:@std/fs/exists";
 import { FileLineStream, Tokenstream } from "./Streams.ts";
+import * as path from "jsr:@std/path";
 
 export default class PreProc {
   private _state: PreProcStateInterface;
@@ -10,6 +11,7 @@ export default class PreProc {
   private fileDepth: number;
   private iter: FileLineStream;
   private ifDepth: number = 0;
+  private relative: string;
   constructor(
     file: string,
     state: PreProcStateInterface,
@@ -22,6 +24,7 @@ export default class PreProc {
     this.config = config;
     this.fileDepth = depth;
     this.iter = iterator;
+    this.relative = path.relative(this.config.root || file, file);
   }
 
   static async createFromFile(
@@ -40,6 +43,8 @@ export default class PreProc {
   }
 
   async run(): Promise<string> {
+    this.output = [];
+    this.outputLine();
     this.state.addFile(this.file);
     while (this.iter.peekValid()) {
       const line = this.iter.next() as string;
@@ -53,13 +58,28 @@ export default class PreProc {
         }
       }
     }
-
+    this.outputLine();
     this.clean();
 
-    return this.output.join("\n").trim();
+    return this.output.join("\n");
+  }
+
+  private outputLine() {
+    this.output.push(this.getLineComment());
+  }
+
+  private getLineComment() {
+    return [
+      this.single,
+      this.relative,
+      this.iter.trueLine + 1,
+      this.fileDepth - 1,
+    ].join(" : ");
   }
 
   private clean(): void {
+    this.output = this.output.map((l) => l.trimEnd());
+
     if (this.cleanComments) {
       this.output = this.output.filter((line) =>
         !line.trimStart().startsWith(this.single)
@@ -70,6 +90,11 @@ export default class PreProc {
       this.output = this.output.filter((line, i) =>
         i < 1 || line != "" || line != this.output[i - 1]
       );
+    }
+
+    if (this.trim) {
+      while (this.output[0] == "") this.output.shift();
+      while (this.output[this.output.length - 1] == "") this.output.pop();
     }
   }
 
@@ -87,6 +112,7 @@ export default class PreProc {
     let commented = false;
 
     while (next) {
+      if (next == this.language.comments.single) commented = true;
       const def = commented ? null : this.readState(next);
       if (def) {
         if (typeof def == "string") next = def;
@@ -121,7 +147,6 @@ export default class PreProc {
         }
       }
       if (next) {
-        if (next == this.language.comments.single) commented = true;
         out.push(next);
       }
       next = stream.next();
@@ -139,11 +164,15 @@ export default class PreProc {
   }
 
   private get collapseEmpty(): boolean {
-    return !!(this.config.options["collapse-empty-lines"] ?? false);
+    return !!(this.config.options["clean-empty-lines"] ?? false);
   }
 
   private get cleanComments(): boolean {
     return !!(this.config.options["clean-comments"] ?? false);
+  }
+
+  private get trim(): boolean {
+    return !!(this.config.options["clean-trim"] ?? false);
   }
 
   private readLineEndsWithEscape(line: string): string {
@@ -204,6 +233,7 @@ export default class PreProc {
             this.error(`Cannot find file ${fileArg}\nTried: ${file}`);
           }
         }
+        file = path.resolve(file);
         if (cmd == "includeonce") {
           if (this.state.files.includes(file)) {
             return this.verbose
@@ -219,12 +249,13 @@ export default class PreProc {
         );
         const str = await preproc.run();
         if (str) {
-          this.output.push(
-            this.verbose
-              ? this.single + `<${cmd} file="${file}">\n${str}`
-              : str,
-          );
-          return this.verbose ? `${this.single} </${cmd}>` : false;
+          this.outputLine();
+          if (this.verbose) {
+            this.output.push(this.single + `<${cmd} file="${file}">\n${str}`);
+          }
+          this.output.push(str);
+          if (this.verbose) this.output.push(`${this.single} </${cmd}>`);
+          return this.getLineComment();
         } else {
           return this.verbose
             ? `${this.single} <${cmd} file="${file}"/>`
@@ -265,12 +296,14 @@ export default class PreProc {
   private readState(va: string): string | DefFunc | null {
     switch (va) {
       case "__FILE__":
-        return `"${this.file}"`;
+        return `"${this.relative}"`;
+      case "__COMMENT__SINGLE__":
+        return this.single;
       case "__LINE__":
-        return this.iter.trueLine.toString();
+        return (this.iter.trueLine + 1).toString();
       case "__SHORT_FILE__":
-        return `"${this.file.split("/").pop()}"`;
-      case "__INCLUDE_LEVEL__":
+        return `"${this.relative.split("/").pop()}"`;
+      case "__DEPTH__":
         return (this.fileDepth - 1).toString();
       default:
         return this.state.read(va);
