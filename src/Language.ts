@@ -12,6 +12,9 @@ const languages: { [k: string]: string | PreProcConfig } = {
     leadChar: "#",
     leadCharCommented: true,
     validSymbol: /^[A-z]{1}[A-z0-9_]*$/,
+    predefined: {
+      "require(f)": "(function()\n--#include f\nend)()",
+    },
     options: {},
     string: [
       {

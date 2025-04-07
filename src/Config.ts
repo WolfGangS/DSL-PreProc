@@ -1,5 +1,6 @@
 import { ensureDir } from "jsr:@std/fs/ensure-dir";
 import { Args, parseArgs } from "jsr:@std/cli/parse-args";
+import * as path from "jsr:@std/path";
 
 export default class Config {
   private static _instance: Config | null = null;
@@ -16,8 +17,11 @@ export default class Config {
     let home = Deno.env.get("HOME");
     if (!home) home = Deno.env.get("HOMEPATH");
     if (!home) home = Deno.env.get("USERPROFILE");
-    this.config_file = home + "/.config/deno_preproc";
-    this._project_dir = home + "/projects";
+    if (!home) {
+      throw "Unable to locate home directory, please talk to @wolfgangs or file an issue on github";
+    }
+    this.config_file = path.join(home, ".config", "deno_preproc");
+    this._project_dir = path.join(home, "projects");
   }
 
   public static get(): Config {
@@ -44,6 +48,7 @@ export default class Config {
         console.log("Couldn't read config file", e.name);
       }
     }
+    await ensureDir(path.dirname(this.config_file));
     console.log("Writing config file", this.config_file);
     await Deno.writeTextFile(this.config_file, JSON.stringify(this, null, 2));
     this.parseArguments();
