@@ -56,7 +56,7 @@ export default class PreProc {
 
     this.clean();
 
-    return this.output.join("\n");
+    return this.output.join("\n").trim();
   }
 
   private clean(): void {
@@ -131,15 +131,15 @@ export default class PreProc {
   }
 
   private get verbose(): boolean {
-    return !!(this.config.options["verbose"]);
+    return !!(this.config.options["verbose"] ?? false);
   }
 
   private get collapseEmpty(): boolean {
-    return !!(this.config.options["collapse-empty-lines"]);
+    return !!(this.config.options["collapse-empty-lines"] ?? false);
   }
 
   private get cleanComments(): boolean {
-    return !!(this.config.options["clean-comments"]);
+    return !!(this.config.options["clean-comments"] ?? false);
   }
 
   private readLineEndsWithEscape(line: string): string {
@@ -213,7 +213,7 @@ export default class PreProc {
           this.config,
           this.fileDepth + 1,
         );
-        const str = (await preproc.run()).trim();
+        const str = await preproc.run();
         if (str) {
           this.output.push(
             this.verbose
