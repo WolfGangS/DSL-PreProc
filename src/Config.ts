@@ -4,16 +4,21 @@ import { Args, parseArgs } from "jsr:@std/cli/parse-args";
 export default class Config {
   private static _instance: Config | null = null;
 
-  private readonly config_file: string = Deno.env.get("HOME") +
-    "/.config/deno_preproc";
+  private readonly config_file: string;
 
-  private _project_dir: string = Deno.env.get("HOME") + "/projects";
+  private _project_dir: string;
   private _port: number = 22623;
   private _cmd: string = "code $project";
 
   private _args: Args | null = null;
 
-  private constructor() {}
+  private constructor() {
+    let home = Deno.env.get("HOME");
+    if (!home) home = Deno.env.get("HOMEPATH");
+    if (!home) home = Deno.env.get("USERPROFILE");
+    this.config_file = home + "/.config/deno_preproc";
+    this._project_dir = home + "/projects";
+  }
 
   public static get(): Config {
     if (this._instance == null) {
