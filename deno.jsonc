@@ -1,0 +1,26 @@
+{
+  "tasks": {
+    "dev": "deno run -W --allow-run -R -N --allow-env=HOME,HOMEPATH --watch src/main.ts --server",
+    "run": "deno run -W --allow-run -R -N --allow-env=HOME,HOMEPATH src/main.ts --server",
+    "build": "deno task 'build-*'",
+    "cache": "deno cache src/main.ts",
+    "build-nix": "deno compile --target x86_64-unknown-linux-gnu -W --allow-run -R -N --allow-env=HOME,HOMEPATH --output bin/dsl_preproc src/standalone.ts",
+    "build-win": "deno compile --target x86_64-pc-windows-msvc -W --allow-run -R -N --allow-env=HOME,HOMEPATH --output bin/win_dsl_preproc.exe src/standalone.ts",
+    "build-mac": "deno compile --target aarch64-apple-darwin -W --allow-run -R -N --allow-env=HOME,HOMEPATH --output bin/mac_dsl_preproc src/standalone.ts",
+    // Unpermed version
+    "buildperms": "deno task 'buildperms-*'",
+    "buildperms-nix": "deno compile --target x86_64-unknown-linux-gnu --output bin/dsl_preproc_serv_perms src/main.ts",
+    "buildperms-win": "deno compile --target x86_64-pc-windows-msvc --output bin/win_dsl_preproc_serv_perms.exe src/main.ts",
+    "buildperms-mac": "deno compile --target aarch64-apple-darwin --output bin/mac_dsl_preproc_serv_perms src/main.ts",
+    // Server version
+    "buildserve": "deno task 'buildserve-*'",
+    "buildserve-nix": "deno compile --target x86_64-unknown-linux-gnu -W --allow-run -R -N --allow-env=HOME,HOMEPATH --output bin/dsl_preproc_serv src/main.ts",
+    "buildserve-win": "deno compile --target x86_64-pc-windows-msvc -W --allow-run -R -N --allow-env=HOME,HOMEPATH --output bin/win_dsl_preproc_serv.exe src/main.ts",
+    "buildserve-mac": "deno compile --target aarch64-apple-darwin -W --allow-run -R -N --allow-env=HOME,HOMEPATH --output bin/mac_dsl_preproc_serv src/main.ts",
+    // "install": "deno install src/main.ts",
+    "install": "deno task build && cp bin/dsl_preproc $HOME/bin/dsl_preproc"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1"
+  }
+}

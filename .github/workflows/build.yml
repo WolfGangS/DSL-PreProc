@@ -30,4 +30,4 @@ jobs:
         id: create_release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: bin/dlsl_preproc.exe, bin/dlsl_preproc, bin/dlsl_preproc_perms.exe, bin/dlsl_preproc_perms
+          artifacts: bin/*

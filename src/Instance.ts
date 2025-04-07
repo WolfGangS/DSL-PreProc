@@ -1,10 +1,9 @@
 import Config from "./Config.ts";
 import FileHandler from "./FileHandler.ts";
-import { PreProcConfig } from "./PreProc/PreProc.ts";
-import PreProcHandler from "./PreProcHandler.ts";
-import Languages from "./Language.ts";
+import { LanguageConfig, PreProcConfig } from "./PreProc/PreProc.ts";
+import { getLangParams } from "./PreProcConfigBuilder.ts";
+import PreProcHandler, { PreProcResult } from "./PreProcHandler.ts";
 import { exists } from "jsr:@std/fs/exists";
-import { encodeHex } from "jsr:@std/encoding/hex";
 
 export default class Instance {
   private filename: string;
@@ -12,14 +11,16 @@ export default class Instance {
   private closed: boolean = true;
   private params: InstanceParams;
   private preProcHandler: PreProcHandler | null = null;
-  private langParams: PreProcConfig | null = null;
+  private preProcConfig: PreProcConfig | null = null;
   private config: Config;
   private closeHandler: ((e: string) => void) | null;
+  private output: ((result: PreProcResult) => Promise<void>) | null = null;
 
   constructor(
     filename: string,
     config: Config,
     closeHandler: (e: string) => void,
+    output: ((result: PreProcResult) => Promise<void>) | null = null,
   ) {
     this.filename = filename;
     this.fileHandler = new FileHandler(filename, () => this.close());
@@ -27,6 +28,7 @@ export default class Instance {
     this.config = config;
     this.closeHandler = closeHandler;
     console.log("New Instance", filename);
+    this.output = output;
   }
 
   private async loadParams() {
@@ -35,15 +37,17 @@ export default class Instance {
     if (langIndex > 0) {
       const nl = text.substring(langIndex).indexOf("\n");
       const lang = text.substring(langIndex + 10, langIndex + nl).trim();
-      this.langParams = this.getLangParams(lang);
+      this.preProcConfig = this.createPreProcConfig(lang);
     } else {
-      this.langParams = this.getLangParams();
+      this.preProcConfig = this.createPreProcConfig();
     }
     const lines = text.split("\n");
     for (let line of lines) {
       line = line.trim();
-      if (!line.startsWith(this.langParams.comments.single)) continue;
-      line = line.substring(this.langParams.comments.single.length);
+      if (!line.startsWith(this.preProcConfig.language.comments.single)) {
+        continue;
+      }
+      line = line.substring(this.preProcConfig.language.comments.single.length);
       line = line.trim();
       if (!line.startsWith("@")) continue;
       line = line.substring(1);
@@ -67,7 +71,7 @@ export default class Instance {
               ? true
               : (arg == "false" ? false : (arg ? arg : true));
             this.params.options[cmd.substring(4)] = ar;
-            this.langParams.options[cmd.substring(4)] = ar;
+            this.preProcConfig.options[cmd.substring(4)] = ar;
           }
           break;
       }
@@ -80,33 +84,31 @@ export default class Instance {
     }
   }
 
+  private createPreProcConfig(fileExt: string | null = null): PreProcConfig {
+    fileExt = fileExt ? fileExt : this.getFileExtension();
+    this.params.language = fileExt;
+    return {
+      root: "",
+      options: {},
+      language: getLangParams(fileExt),
+    };
+  }
+
   async start() {
     try {
       await this.loadParams();
-      if (this.langParams) {
+      if (this.preProcConfig) {
         this.preProcHandler = new PreProcHandler(
           this.rootProjectFile,
-          (content) => this.output(content),
-          this.langParams,
+          (content) => this.write(content),
+          this.preProcConfig,
         );
         await this.preProcHandler.run();
       } else throw "No Lang Params";
-    } catch (e: any) {
-      this.close(e);
+    } catch (e: unknown) {
+      this.close(`${e}`);
     }
     this.close();
-  }
-
-  private getLangParams(fileExt: string | null = null): PreProcConfig {
-    fileExt = fileExt ? fileExt : this.getFileExtension();
-    this.params.language = fileExt;
-    console.log(`Loading file with language '${fileExt}'`);
-    let config = Languages[fileExt];
-    while (typeof config == "string") {
-      config = Languages[config];
-    }
-    if (typeof config == "object" && config != null) return config;
-    throw `Unable to get language config for '${fileExt}'`;
   }
 
   private getFileExtension(): string {
@@ -126,21 +128,26 @@ export default class Instance {
     this.closeHandler = null;
   }
 
-  async output(content: string) {
-    const buff = new TextEncoder().encode(content);
-    const hashBuff = await crypto.subtle.digest("SHA-256", buff);
-    const hash = encodeHex(hashBuff);
-    if (this.params.hash == hash) return;
+  async write(content: PreProcResult) {
+    if (this.output) {
+      this.output(content);
+      return;
+    }
+    if (this.params.hash == content.hash) return;
     console.log("Pushing Change");
-    this.params.hash = hash;
+    this.params.hash = content.hash;
     await this.fileHandler.write(
-      this.header + "\n" + content +
-        (content.charAt(content.length - 1) != "\n" ? "\n" : ""),
+      this.header + "\n" + content.text +
+        (content.text.charAt(content.text.length - 1) != "\n" ? "\n" : ""),
     );
   }
 
+  get language(): LanguageConfig | null {
+    return this.preProcConfig?.language || null;
+  }
+
   get header(): string {
-    const prefix = `${this.langParams?.comments.single} @`;
+    const prefix = `${this.language?.comments.single} @`;
     const lines = [
       `language ${this.params.language}`,
       `project ${this.params.project}`,
@@ -153,12 +160,12 @@ export default class Instance {
       lines.push(`opt-${opt} ${this.params.options[opt]}`);
     }
     const header =
-      `${this.langParams?.comments.single} Proproced through WGPreproc v0.0.1\n`;
+      `${this.language?.comments.single} Proproced through WGPreproc v0.0.1\n`;
     const footer =
-      `\n${this.langParams?.comments.single} =============================`;
+      `\n${this.language?.comments.single} =============================`;
     return header +
       lines.map((line) =>
-        line ? `${prefix}${line}` : this.langParams?.comments.single
+        line ? `${prefix}${line}` : this.language?.comments.single
       ).join("\n") + footer;
   }
 
@@ -174,7 +181,7 @@ export default class Instance {
 export class InstanceParams {
   language: string = "lsl";
   project: string | null = null;
-  file: string | null = null;
+  file: string | null = "main.luau";
   hash: string | null = null;
   options: { [k: string]: string | boolean } = {};
 }

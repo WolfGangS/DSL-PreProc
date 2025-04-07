@@ -1,6 +1,6 @@
-import { PreProcConfig } from "./PreProc/PreProc.ts";
+import { LanguageConfig } from "./PreProc/PreProc.ts";
 
-const languages: { [k: string]: string | PreProcConfig } = {
+const languages: { [k: string]: string | LanguageConfig } = {
   lua: {
     comments: {
       single: "--",
@@ -15,7 +15,6 @@ const languages: { [k: string]: string | PreProcConfig } = {
     predefined: {
       "require(f)": "(function()\n--#include f\nend)()",
     },
-    options: {},
     string: [
       {
         char: "'",
@@ -43,7 +42,6 @@ const languages: { [k: string]: string | PreProcConfig } = {
     leadChar: "#",
     leadCharCommented: false,
     validSymbol: /^[A-z]{1}[A-z0-9_]*$/,
-    options: {},
     string: [],
   },
   c: {
@@ -57,7 +55,6 @@ const languages: { [k: string]: string | PreProcConfig } = {
     leadChar: "#",
     leadCharCommented: false,
     validSymbol: /^[A-z]{1}[A-z0-9_]*$/,
-    options: {},
     string: [],
   },
   cpp: "c",
@@ -73,7 +70,6 @@ const languages: { [k: string]: string | PreProcConfig } = {
     leadChar: "#",
     leadCharCommented: false,
     validSymbol: /^[A-z]{1}[A-z0-9_]*$/,
-    options: {},
     string: [
       {
         char: '"',
