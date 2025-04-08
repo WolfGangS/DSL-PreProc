@@ -17,6 +17,8 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Version
+        run: "sed 's/\"version\": \"dev\"/\"version\": \"${GITHUB_REF#refs/*/}\"/' src/meta.json | tee src/meta.json"
       - name: Build
         run: deno task build
       - uses: actions/upload-artifact@v4

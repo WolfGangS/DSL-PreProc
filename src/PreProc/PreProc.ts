@@ -71,6 +71,7 @@ export default class PreProc {
   private getLineComment() {
     return [
       this.single,
+      "MAP",
       this.relative,
       this.iter.trueLine + 1,
       this.fileDepth - 1,
