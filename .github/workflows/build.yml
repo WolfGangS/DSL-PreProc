@@ -17,8 +17,21 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Version Number
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        id: version_number
+        run: |
+          TAG=${{ github.ref_name }}
+          echo "${TAG#v}"
+          echo "version_number=${TAG#v}" >> $GITHUB_OUTPUT
       - name: Version
-        run: "sed 's/\"version\": \"dev\"/\"version\": \"${GITHUB_REF#refs/*/}\"/' src/meta.json | tee src/meta.json"
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          sed -i -e "s/\"version\": \"dev\"/\"version\": \"${{ steps.version_number.outputs.version_number }}\"/g" src/meta.json
+      - name: Version
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          sed -i -e "s/\"version\": \"dev\"/\"version\": \"${{ GITHUB_REF#refs/*/ }}\"/g" src/meta.json
       - name: Build
         run: deno task build
       - uses: actions/upload-artifact@v4
