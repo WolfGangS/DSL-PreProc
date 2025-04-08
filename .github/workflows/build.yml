@@ -31,7 +31,7 @@ jobs:
       - name: Version
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: |
-          sed -i -e "s/\"version\": \"dev\"/\"version\": \"${{ GITHUB_REF#refs/*/ }}\"/g" src/meta.json
+          sed -i -e "s/\"version\": \"dev\"/\"version\": \"${{ github.ref }}\"/g" src/meta.json
       - name: Build
         run: deno task build
       - uses: actions/upload-artifact@v4
