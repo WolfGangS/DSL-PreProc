@@ -50,6 +50,14 @@ if (lang !== "lsl" && lang != "lua") {
 
 const language = getLangParams(lang);
 
+const output = async (text: string) => {
+  if (args.out) {
+    await Deno.writeTextFile(args.out, text);
+  } else {
+    console.log(text);
+  }
+};
+
 if (args.remapLines) {
   const lineNumbers = args.remapLines.split(",").map((s) => parseInt(s.trim()));
   const text = await Deno.readTextFile(file);
@@ -73,7 +81,7 @@ if (args.remapLines) {
       out[i.toString()] = [mapFile, (i - mapAtLine) + mapLine - 1];
     }
   }
-  console.log(
+  output(
     JSON.stringify({
       success: true,
       lines: out,
@@ -84,9 +92,9 @@ if (args.remapLines) {
     file,
     (result) => {
       if (args.raw) {
-        console.log(result.text);
+        output(result.text);
       } else {
-        console.log(JSON.stringify(result));
+        output(JSON.stringify(result));
       }
       return Promise.resolve();
     },
