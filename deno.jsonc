@@ -4,9 +4,9 @@
     "run": "deno run -W --allow-run -R -N --allow-env=HOME,HOMEPATH src/main.ts --server",
     "build": "deno task 'build-*'",
     "cache": "deno cache src/main.ts",
-    "build-nix": "deno compile --target x86_64-unknown-linux-gnu -W --allow-run -R -N --allow-env=HOME,HOMEPATH --output bin/dsl_preproc src/standalone.ts",
-    "build-win": "deno compile --target x86_64-pc-windows-msvc -W --allow-run -R -N --allow-env=HOME,HOMEPATH --output bin/win_dsl_preproc.exe src/standalone.ts",
-    "build-mac": "deno compile --target aarch64-apple-darwin -W --allow-run -R -N --allow-env=HOME,HOMEPATH --output bin/mac_dsl_preproc src/standalone.ts",
+    "build-nix": "deno compile --target x86_64-unknown-linux-gnu -W -R --output bin/dsl_preproc src/standalone.ts",
+    "build-win": "deno compile --target x86_64-pc-windows-msvc -W -R --output bin/win_dsl_preproc.exe src/standalone.ts",
+    "build-mac": "deno compile --target aarch64-apple-darwin -W -R --output bin/mac_dsl_preproc src/standalone.ts",
     // Unpermed version
     "buildperms": "deno task 'buildperms-*'",
     "buildperms-nix": "deno compile --target x86_64-unknown-linux-gnu --output bin/dsl_preproc_serv_perms src/main.ts",
