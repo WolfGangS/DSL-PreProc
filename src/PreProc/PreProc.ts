@@ -58,7 +58,6 @@ export default class PreProc {
         }
       }
     }
-    this.outputLine();
     this.clean();
 
     return this.output.join("\n");
@@ -250,7 +249,6 @@ export default class PreProc {
         );
         const str = await preproc.run();
         if (str) {
-          this.outputLine();
           if (this.verbose) {
             this.output.push(this.single + `<${cmd} file="${file}">\n${str}`);
           }

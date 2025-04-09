@@ -13,8 +13,7 @@ const languages: { [k: string]: string | LanguageConfig } = {
     leadCharCommented: true,
     validSymbol: /^[A-z]{1}[A-z0-9_]*$/,
     predefined: {
-      "require(f)":
-        "(function()\n--#include f\nend)()\n__COMMENT__SINGLE__ __FILE__ : __LINE__ : __DEPTH__",
+      "require(f)": "(function()\n--#include f\nend)()",
     },
     string: [
       {
